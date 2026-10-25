@@ -71,13 +71,6 @@ Se incluyen dos ejemplos: una viga sobre suelo y un pórtico.
 
 Se recomienda verificar los resultados con casos de solución conocida antes de usarlos en un proyecto real.
 
-## Publicar en GitHub Pages
-
-1. Guarda el archivo del programa con el nombre exacto **`index.html`**, en la raíz del repositorio.
-2. En el repositorio, ve a **Settings → Pages**.
-3. En *Build and deployment*, elige **Deploy from a branch**, la rama **main** y la carpeta **/ (root)**, y pulsa **Save**.
-4. Espera uno o dos minutos y abre la dirección que indica GitHub.
-
 ## Créditos
 
 - Programa original **ZAPEL77P** (2005, actualizado en 2010): Dr. Bernardo Deschapelles.
