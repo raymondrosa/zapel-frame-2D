@@ -21,7 +21,7 @@ table{border-collapse:collapse;width:100%}td,th{padding:1px 4px;text-align:right
 </style></head><body>
 <div id="tb">
 <button id="t_sel" class="on">Seleccionar</button><button id="t_bar">Dibujar barra</button><button id="b_del">Eliminar</button><button id="b_clr">Limpiar</button>
-<span class="sp"></span><select id="un"><option value="SI">kN · m (SI)</option><option value="IM">kip · ft (Imperial)</option></select><label>Malla <input id="gs" type="number" value="0.5" step="0.1" min="0.05" style="width:60px"> <span id="gu">m</span></label><label><input type="checkbox" id="dm" checked> Cotas</label><button id="b_fit">Encuadrar</button>
+<span class="sp"></span><select id="un"><option value="SI">kN · m (SI)</option><option value="IM">kip · ft (Imperial)</option></select><label>Malla <input id="gs" type="number" value="0.5" step="0.1" min="0.05" style="width:60px"> <span id="gu">m</span></label><label><input type="checkbox" id="dm" checked> Cotas</label><button id="b_fit">Encuadrar</button><button id="zi">＋</button><button id="zo">－</button>
 <span class="sp"></span><button id="b_ex1">Ej. viga sobre suelo</button><button id="b_ex2">Ej. pórtico</button>
 <span class="sp"></span><button class="go" id="b_run">▶ Calcular</button>
 <span class="sp"></span><span id="md"></span><label>Esc. def. ×<input id="df" type="number" value="1" step="0.5" min="0.1" style="width:55px"></label>
@@ -33,8 +33,8 @@ const $=id=>document.getElementById(id),cv=$('cv'),g=cv.getContext('2d');
 const SUP={fix:[1,1,1],pin:[1,1,0],ry:[0,1,0],rx:[1,0,0]};
 let cu='SI';const UN={SI:{L:['m',1],F:['kN',1],FL:['kN·m',1],q:['kN/m',1],E:['GPa',1],k:['kN/m³',1],d:['mm',1000]},IM:{L:['ft',3.28084],F:['kip',.224809],FL:['kip·ft',.737562],q:['kip/ft',.068522],E:['ksi',145.038],k:['kip/ft³',.006366],d:['in',39.3701]}},UF=k=>k?UN[cu][k][1]:1,UL=k=>UN[cu][k][0],fmtv=v=>+v.toPrecision(6),KM={M:'FL',V:'F',N:'F',p:'q'};
 const FN=[['sup','Apoyo','s'],['fx','Fx (→+)','n','F'],['fy','Fy (↑+)','n','F'],['mz','Mz (↺+)','n','FL']];
-const FB=[['b','Ancho b','n','L'],['h','Canto h','n','L'],['E','E','n','E'],['wa','w inicio (↓+)','n','q'],['wb','w final (↓+)','n','q'],['ka','ks inicio','n','k'],['kb','ks final','n','k'],['div','Subdivisiones','n',''],['r1','Articulación inicio','c'],['r2','Articulación final','c']];
-const D={b:.3,h:.5,E:25,wa:0,wb:0,ka:0,kb:0,div:4,r1:0,r2:0};
+const FB=[['b','Ancho b','n','L'],['h','Canto h','n','L'],['E','E','n','E'],['wa','w inicio (↓+)','n','q'],['wb','w final (↓+)','n','q'],['la','wx inicio (→+)','n','q'],['lb','wx final (→+)','n','q'],['ka','ks inicio','n','k'],['kb','ks final','n','k'],['div','Subdivisiones','n',''],['r1','Articulación inicio','c'],['r2','Articulación final','c']];
+const D={b:.3,h:.5,E:25,wa:0,wb:0,la:0,lb:0,ka:0,kb:0,div:4,r1:0,r2:0};
 const MODES=[['model','Modelo'],['def','Deformada'],['M','Momento'],['V','Cortante'],['N','Axial'],['p','Suelo']];
 let N=[],B=[],tool='sel',sel=null,res=null,mode='model',chain=null,pan=null,ms=null,V={s:40,ox:60,oy:300},dpr=devicePixelRatio||1;
 const mul=(A,Bm)=>A.map(r=>Bm[0].map((_,j)=>r.reduce((s,v,k)=>s+v*Bm[k][j],0))),tp=A=>A[0].map((_,j)=>A.map(r=>r[j]));
@@ -63,7 +63,7 @@ function analyze(){
  const n=nd.length*3,G=Array.from({length:n},()=>Array(n).fill(0)),F=Array(n).fill(0);
  E.forEach(e=>{const r=B[e.bi],a=nd[e.i],z=nd[e.j],L=Math.hypot(z.x-a.x,z.y-a.y),c=(z.x-a.x)/L,s=(z.y-a.y)/L,t0=(e.k-1)/e.n,t1=e.k/e.n;
   const wa=r.wa+(r.wb-r.wa)*t0,wb=r.wa+(r.wb-r.wa)*t1,ka=(r.ka+(r.kb-r.ka)*t0)*r.b,kb=(r.ka+(r.kb-r.ka)*t1)*r.b;
-  Object.assign(e,{L,c,s,ka,kb,qxa:-wa*s,qxb:-wb*s,qya:-wa*c,qyb:-wb*c,wa,wb});
+  const xa=r.la+(r.lb-r.la)*t0,xb=r.la+(r.lb-r.la)*t1;Object.assign(e,{L,c,s,ka,kb,qxa:-wa*s+xa*c,qxb:-wb*s+xb*c,qya:-wa*c-xa*s,qyb:-wb*c-xb*s,wa,wb});
   e.Ko=kloc(r.E*1e6,r.b*r.h,r.b*r.h**3/12,L,ka,kb);e.fo=feq(L,e.qxa,e.qxb,e.qya,e.qyb);
   e.rel=[];if(e.k==1&&r.r1)e.rel.push(2);if(e.k==e.n&&r.r2)e.rel.push(5);
   e.Kc=e.Ko.map(x=>x.slice());e.fc=e.fo.slice();cond(e.Kc,e.fc,e.rel);
@@ -113,7 +113,8 @@ function draw(){
   if(!R){g.fillStyle=C('--mut');g.fillText('B'+(bi+1),(sx(a.x)+sx(z.x))/2+4,(sy(a.y)+sy(z.y))/2-6)}
   if(!R&&(r.wa||r.wb)){const mxw=Math.max(...B.map(q=>Math.max(Math.abs(q.wa),Math.abs(q.wb)))),dn=r.wa+r.wb>0?1:-1;g.strokeStyle='#d97706';const pts=[];
    for(let k=0;k<=8;k++){const t=k/8,wv=r.wa+(r.wb-r.wa)*t,l=Math.max(6,Math.abs(wv)/mxw*34)*dn,x=sx(a.x+(z.x-a.x)*t),y=sy(a.y+(z.y-a.y)*t);pts.push([x,y-l]);if(Math.abs(wv)>1e-9)arrow(x,y-l,x,y)}
-   g.beginPath();pts.forEach((p,i)=>i?g.lineTo(...p):g.moveTo(...p));g.stroke()}});
+   g.beginPath();pts.forEach((p,i)=>i?g.lineTo(...p):g.moveTo(...p));g.stroke()}
+  if(!R&&(r.la||r.lb)){const ml=Math.max(...B.map(q=>Math.max(Math.abs(q.la),Math.abs(q.lb)))),dr=r.la+r.lb>0?1:-1,pl=[];g.strokeStyle='#d97706';for(let k=0;k<=8;k++){const t=k/8,wv=r.la+(r.lb-r.la)*t,l=Math.max(6,Math.abs(wv)/ml*34)*dr,x=sx(a.x+(z.x-a.x)*t),y=sy(a.y+(z.y-a.y)*t);pl.push([x-l,y]);if(Math.abs(wv)>1e-9)arrow(x-l,y,x,y)}g.beginPath();pl.forEach((p,i)=>i?g.lineTo(...p):g.moveTo(...p));g.stroke()}});
  if($('dm').checked)B.forEach(r=>{const a=N[r.i],z=N[r.j],L=Math.hypot(z.x-a.x,z.y-a.y),x1=sx(a.x),y1=sy(a.y),x2=sx(z.x),y2=sy(z.y),l=Math.hypot(x2-x1,y2-y1)||1,nx=-(y2-y1)/l*40,ny=(x2-x1)/l*40;
  g.strokeStyle=g.fillStyle=C('--mut');g.lineWidth=1;g.beginPath();g.moveTo(x1,y1);g.lineTo(x1+nx,y1+ny);g.moveTo(x2,y2);g.lineTo(x2+nx,y2+ny);g.moveTo(x1+nx*.85,y1+ny*.85);g.lineTo(x2+nx*.85,y2+ny*.85);g.stroke();
  g.fillText((L*UF('L')).toFixed(2)+' '+UL('L'),(x1+x2)/2+nx-14,(y1+y2)/2+ny-3)});
@@ -157,17 +158,21 @@ function run(){res=analyze();const o=$('out');if(res.err){o.innerHTML='<span cla
 
 $('md').innerHTML=MODES.map(([k,l])=>'<button data-m="'+k+'"'+(k==mode?' class="on"':'')+'>'+l+'</button>').join('');
 document.querySelectorAll('#md button').forEach(b=>b.onclick=()=>{if(b.dataset.m!='model'&&!res)run();if(res||b.dataset.m=='model')setMode(b.dataset.m)});
-$('t_sel').onclick=()=>setTool('sel');$('t_bar').onclick=()=>setTool('bar');$('b_del').onclick=del;$('b_run').onclick=run;$('b_fit').onclick=()=>{fit();draw()};
+$('t_sel').onclick=()=>setTool('sel');$('t_bar').onclick=()=>setTool('bar');$('b_del').onclick=del;$('b_run').onclick=run;$('b_fit').onclick=()=>{fit();draw()};$('zi').onclick=()=>{zoomAt(cv.clientWidth/2,cv.clientHeight/2,1.25);draw()};$('zo').onclick=()=>{zoomAt(cv.clientWidth/2,cv.clientHeight/2,.8);draw()};
 $('b_clr').onclick=()=>load([],[]);$('gs').onchange=draw;$('df').onchange=draw;$('dm').onchange=draw;
 $('un').onchange=()=>{cu=$('un').value;$('gs').value=cu=='SI'?.5:1;$('gu').textContent=UL('L');form();if(res)run();else draw()};
 $('b_ex1').onclick=()=>{load([mk(0,0,'rx'),mk(5,0),mk(10,0)],[bk(0,1,{b:1,h:.6,wa:50,wb:50,ka:15000,kb:15000,div:6}),bk(1,2,{b:1,h:.6,wa:50,wb:50,ka:15000,kb:15000,div:6})]);N[1].fy=-300;form();draw()};
 $('b_ex2').onclick=()=>load([mk(0,0,'fix'),mk(0,4),mk(6,4),mk(6,0,'fix')],[bk(0,1,{b:.4,h:.4,div:2}),bk(1,2,{b:.3,h:.6,wa:20,wb:20,div:6}),bk(3,2,{b:.4,h:.4,div:2})]);
-cv.onpointerdown=e=>{const r=cv.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;ms={px,py,...snap(px,py)};
+const PT=new Map();let pin=null;
+function zoomAt(px,py,k){const x=wx(px),y=wy(py);V.s*=k;V.ox=px-x*V.s;V.oy=py+y*V.s}
+const pc=()=>{const [a,b]=[...PT.values()];return[(a[0]+b[0])/2,(a[1]+b[1])/2,Math.hypot(a[0]-b[0],a[1]-b[1])]};
+function pinchMove(){const c=pc();if(pin&&pin[2]>0){zoomAt(c[0],c[1],c[2]/pin[2]);V.ox+=c[0]-pin[0];V.oy+=c[1]-pin[1]}pin=c;draw()}
+cv.onpointerdown=e=>{const r=cv.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;ms={px,py,...snap(px,py)};PT.set(e.pointerId,[px,py]);if(PT.size==2){pan=null;pin=pc();return}
  if(tool=='bar'){if(e.button==2){chain=null;draw();return}const p=snap(px,py),ni=nodeAt(p.x,p.y);
   if(chain!=null){if(ni==chain){chain=null;draw();return}if(!B.some(q=>(q.i==chain&&q.j==ni)||(q.i==ni&&q.j==chain)))B.push(bk(chain,ni));res=null}chain=ni;draw();return}
  const hn=hitN(px,py);if(hn>=0)sel={t:'n',i:hn};else{const hb=hitB(px,py);if(hb>=0)sel={t:'b',i:hb};else{sel=null;pan={px,py,ox:V.ox,oy:V.oy}}}form();draw()};
-cv.onpointermove=e=>{const r=cv.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;ms={px,py,...snap(px,py)};if(pan){V.ox=pan.ox+px-pan.px;V.oy=pan.oy+py-pan.py}draw()};
-cv.onpointerup=()=>pan=null;cv.oncontextmenu=e=>{e.preventDefault();chain=null;draw()};
+cv.onpointermove=e=>{const r=cv.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;ms={px,py,...snap(px,py)};if(PT.has(e.pointerId))PT.set(e.pointerId,[px,py]);if(PT.size==2){pinchMove();return}if(pan){V.ox=pan.ox+px-pan.px;V.oy=pan.oy+py-pan.py}draw()};
+cv.onpointerup=cv.onpointercancel=e=>{PT.delete(e.pointerId);pin=null;pan=null};cv.oncontextmenu=e=>{e.preventDefault();chain=null;draw()};
 cv.onwheel=e=>{e.preventDefault();const r=cv.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top,k=e.deltaY<0?1.15:1/1.15,x=wx(px),y=wy(py);V.s*=k;V.ox=px-x*V.s;V.oy=py+y*V.s;draw()};
 addEventListener('keydown',e=>{if(e.target.tagName=='INPUT'||e.target.tagName=='SELECT')return;if(e.key=='Escape'){chain=null;draw()}if(e.key=='Delete'||e.key=='Backspace')del()});
 addEventListener('resize',()=>{draw()});
