@@ -24,7 +24,7 @@ table{border-collapse:collapse;width:100%}td,th{padding:1px 4px;text-align:right
 <span class="sp"></span><select id="un"><option value="SI">kN · m (SI)</option><option value="IM">kip · ft (Imperial)</option></select><label>Malla <input id="gs" type="number" value="0.5" step="0.1" min="0.05" style="width:60px"> <span id="gu">m</span></label><label><input type="checkbox" id="dm" checked> Cotas</label><button id="b_fit">Encuadrar</button><button id="zi">＋</button><button id="zo">－</button>
 <span class="sp"></span><button id="b_ex1">Ej. viga sobre suelo</button><button id="b_ex2">Ej. pórtico</button>
 <span class="sp"></span><button class="go" id="b_run">▶ Calcular</button>
-<span class="sp"></span><span id="md"></span><label>Esc. def. ×<input id="df" type="number" value="1" step="0.5" min="0.1" style="width:55px"></label>
+<span class="sp"></span><span id="md"></span><label>Esc. def. ×<input id="df" type="number" value="1" step="0.5" min="0.1" style="width:55px"></label><button id="b_an">▶ Animar</button>
 </div>
 <div id="mn"><div id="cw"><canvas id="cv"></canvas><div id="st"></div></div>
 <div id="pn"><div id="prop"></div><div id="out"></div><div class="m" style="margin-top:14px;padding-top:8px;border-top:1px solid var(--bd);font-size:11px;line-height:1.5">Basado en ZAPEL77P<br>Autor: Dr. Bernardo Deschapelles<br>Actualizado por el Prof. Raymond Rosa Ávila</div></div></div>
@@ -122,8 +122,8 @@ function draw(){
   g.fillStyle=sel&&sel.t=='n'&&sel.i==i?ac:fg;g.beginPath();g.arc(px,py,4,0,7);g.fill();
   if(!R){g.strokeStyle='#dc2626';g.fillStyle='#dc2626';if(n.fx)arrow(px-Math.sign(n.fx)*38,py,px,py);if(n.fy)arrow(px,py+Math.sign(n.fy)*38,px,py);if(n.mz)g.fillText('M='+fmtv(n.mz*UF('FL')),px+8,py-8);g.fillStyle=C('--mut');g.fillText(i+1,px+6,py+14)}});
  if(R){const e=R.ext;
-  if(mode=='def'){const k=50/(e.d*V.s)*(+$('df').value||1);g.strokeStyle='#2563eb';g.lineWidth=2;R.bars.forEach(b=>{g.beginPath();b.forEach((q,i)=>i?g.lineTo(sx(q.X+q.dx*k),sy(q.Y+q.dy*k)):g.moveTo(sx(q.X+q.dx*k),sy(q.Y+q.dy*k)));g.stroke();let im=0;b.forEach((q,i)=>{if(Math.hypot(q.dx,q.dy)>Math.hypot(b[im].dx,b[im].dy))im=i});const mq=b[im],dm=Math.hypot(mq.dx,mq.dy);if(dm>1e-12){const px=sx(mq.X+mq.dx*k),py=sy(mq.Y+mq.dy*k);g.fillStyle='#2563eb';g.beginPath();g.arc(px,py,3,0,7);g.fill();g.fillStyle=fg;g.fillText((dm*UF('d')).toPrecision(3)+' '+UL('d'),px+6,py+14)}});
-   g.fillStyle=C('--mut');g.fillText('Deformada ampliada ×'+(k).toExponential(1)+' · δmax = '+(e.d*UF('d')).toPrecision(3)+' '+UL('d'),10,16)}
+  if(mode=='def'){const k0=50/(e.d*V.s)*(+$('df').value||1),k=k0*af;g.strokeStyle='#2563eb';g.lineWidth=2;R.bars.forEach(b=>{g.beginPath();b.forEach((q,i)=>i?g.lineTo(sx(q.X+q.dx*k),sy(q.Y+q.dy*k)):g.moveTo(sx(q.X+q.dx*k),sy(q.Y+q.dy*k)));g.stroke();let im=0;b.forEach((q,i)=>{if(Math.hypot(q.dx,q.dy)>Math.hypot(b[im].dx,b[im].dy))im=i});const mq=b[im],dm=Math.hypot(mq.dx,mq.dy);if(dm>1e-12){const px=sx(mq.X+mq.dx*k),py=sy(mq.Y+mq.dy*k);g.fillStyle='#2563eb';g.beginPath();g.arc(px,py,3,0,7);g.fill();g.fillStyle=fg;g.fillText((dm*UF('d')).toPrecision(3)+' '+UL('d'),px+6,py+14)}});
+   g.fillStyle=C('--mut');g.fillText('Deformada ampliada ×'+(k0).toExponential(1)+' · δmax = '+(e.d*UF('d')).toPrecision(3)+' '+UL('d'),10,16)}
   else{const sg=mode=='M'||mode=='p'?-1:1,k=sg*60/e[mode],col={M:'#dc2626',V:'#16a34a',N:'#9333ea',p:'#d97706'}[mode];
    R.bars.forEach((b,bi)=>{const r=B[bi],a=N[r.i],z=N[r.j],L=Math.hypot(z.x-a.x,z.y-a.y),nx=-(z.y-a.y)/L,ny=-(z.x-a.x)/L;
     const P=b.map(q=>[sx(q.X)+nx*q[mode]*k,sy(q.Y)+ny*q[mode]*k]);g.beginPath();g.moveTo(sx(b[0].X),sy(b[0].Y));P.forEach(p=>g.lineTo(...p));g.lineTo(sx(b.at(-1).X),sy(b.at(-1).Y));g.closePath();
@@ -158,12 +158,14 @@ function run(){res=analyze();const o=$('out');if(res.err){o.innerHTML='<span cla
 
 $('md').innerHTML=MODES.map(([k,l])=>'<button data-m="'+k+'"'+(k==mode?' class="on"':'')+'>'+l+'</button>').join('');
 document.querySelectorAll('#md button').forEach(b=>b.onclick=()=>{if(b.dataset.m!='model'&&!res)run();if(res||b.dataset.m=='model')setMode(b.dataset.m)});
-$('t_sel').onclick=()=>setTool('sel');$('t_bar').onclick=()=>setTool('bar');$('b_del').onclick=del;$('b_run').onclick=run;$('b_fit').onclick=()=>{fit();draw()};$('zi').onclick=()=>{zoomAt(cv.clientWidth/2,cv.clientHeight/2,1.25);draw()};$('zo').onclick=()=>{zoomAt(cv.clientWidth/2,cv.clientHeight/2,.8);draw()};
+$('t_sel').onclick=()=>setTool('sel');$('t_bar').onclick=()=>setTool('bar');$('b_del').onclick=del;$('b_run').onclick=run;$('b_fit').onclick=()=>{fit();draw()};$('zi').onclick=()=>{zoomAt(cv.clientWidth/2,cv.clientHeight/2,1.25);draw()};$('zo').onclick=()=>{zoomAt(cv.clientWidth/2,cv.clientHeight/2,.8);draw()};$('b_an').onclick=()=>{if(anim){stopAnim();return}if(!res)run();if(!res)return;setMode('def');$('b_an').textContent='■ Detener';anim=requestAnimationFrame(tick)};
 $('b_clr').onclick=()=>load([],[]);$('gs').onchange=draw;$('df').onchange=draw;$('dm').onchange=draw;
 $('un').onchange=()=>{cu=$('un').value;$('gs').value=cu=='SI'?.5:1;$('gu').textContent=UL('L');form();if(res)run();else draw()};
 $('b_ex1').onclick=()=>{load([mk(0,0,'rx'),mk(5,0),mk(10,0)],[bk(0,1,{b:1,h:.6,wa:50,wb:50,ka:15000,kb:15000,div:6}),bk(1,2,{b:1,h:.6,wa:50,wb:50,ka:15000,kb:15000,div:6})]);N[1].fy=-300;form();draw()};
 $('b_ex2').onclick=()=>load([mk(0,0,'fix'),mk(0,4),mk(6,4),mk(6,0,'fix')],[bk(0,1,{b:.4,h:.4,div:2}),bk(1,2,{b:.3,h:.6,wa:20,wb:20,div:6}),bk(3,2,{b:.4,h:.4,div:2})]);
-const PT=new Map();let pin=null;
+const PT=new Map();let pin=null,af=1,anim=null;
+function stopAnim(){if(anim)cancelAnimationFrame(anim);anim=null;af=1;$('b_an').textContent='▶ Animar';draw()}
+function tick(t){if(!anim)return;if(mode!='def'||!res){stopAnim();return}af=.5*(1-Math.cos(t/1000*2*Math.PI/2.4));draw();anim=requestAnimationFrame(tick)}
 function zoomAt(px,py,k){const x=wx(px),y=wy(py);V.s*=k;V.ox=px-x*V.s;V.oy=py+y*V.s}
 const pc=()=>{const [a,b]=[...PT.values()];return[(a[0]+b[0])/2,(a[1]+b[1])/2,Math.hypot(a[0]-b[0],a[1]-b[1])]};
 function pinchMove(){const c=pc();if(pin&&pin[2]>0){zoomAt(c[0],c[1],c[2]/pin[2]);V.ox+=c[0]-pin[0];V.oy+=c[1]-pin[1]}pin=c;draw()}
